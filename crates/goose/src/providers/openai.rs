@@ -13,6 +13,8 @@ use super::openai_compatible::{
 use super::retry::ProviderRetry;
 use crate::config::declarative_providers::DeclarativeProviderConfig;
 use crate::conversation::message::Message;
+use crate::providers::base::MessageStream;
+use crate::providers::utils::RequestLog;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::future::BoxFuture;
@@ -23,13 +25,10 @@ use goose_providers::formats::openai::{
     create_request_with_options, get_usage, response_to_message, OpenAiFormatOptions,
 };
 use goose_providers::images::ImageFormat;
-use reqwest::StatusCode;
-use std::collections::HashMap;
-
-use crate::providers::base::MessageStream;
-use crate::providers::utils::RequestLog;
 use goose_providers::model::ModelConfig;
+use reqwest::StatusCode;
 use rmcp::model::Tool;
+use std::collections::HashMap;
 
 const OPEN_AI_PROVIDER_NAME: &str = "openai";
 const OPEN_AI_DEFAULT_BASE_PATH: &str = "v1/chat/completions";

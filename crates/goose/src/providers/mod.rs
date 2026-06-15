@@ -26,7 +26,9 @@ pub mod cursor_agent;
 pub mod databricks;
 pub mod databricks_auth;
 pub mod databricks_v2;
-pub mod embedding;
+pub mod embedding {
+    pub use goose_providers::embedding::*;
+}
 pub mod formats;
 mod gcpauth;
 pub mod gcpvertexai;

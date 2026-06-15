@@ -13,7 +13,7 @@ use tempfile::NamedTempFile;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 
-use super::base::{ConfigKey, MessageStream, Provider, ProviderDef, ProviderMetadata};
+use super::base::{MessageStream, Provider, ProviderDef, ProviderMetadata};
 use super::utils::{filter_extensions_from_system_prompt, RequestLog};
 use crate::config::base::{CodexCommand, CodexSkipGitCheck};
 use crate::config::paths::Paths;
@@ -627,8 +627,8 @@ impl ProviderDef for CodexProvider {
             CODEX_KNOWN_MODELS.to_vec(),
             CODEX_DOC_URL,
             vec![
-                ConfigKey::from_value_type::<CodexCommand>(true, false, true),
-                ConfigKey::from_value_type::<CodexSkipGitCheck>(false, false, true),
+                provider_config_key_from_value::<CodexCommand>(true, false, true),
+                provider_config_key_from_value::<CodexSkipGitCheck>(false, false, true),
             ],
         )
     }
