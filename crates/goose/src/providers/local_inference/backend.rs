@@ -3,8 +3,8 @@ use std::any::Any;
 
 use crate::conversation::message::Message;
 use crate::providers::local_inference::local_model_registry::ModelSettings;
-use crate::providers::utils::RequestLog;
 use goose_providers::errors::ProviderError;
+use goose_providers::request_log::RequestLogHandle;
 
 use super::{ResolvedModelPaths, StreamSender};
 
@@ -22,7 +22,7 @@ pub(super) struct LocalGenerationRequest<'a> {
     pub resolved_model: &'a ResolvedModelPaths,
     pub message_id: &'a str,
     pub tx: &'a StreamSender,
-    pub log: &'a mut RequestLog,
+    pub log: &'a mut Option<Box<dyn RequestLogHandle>>,
 }
 
 pub(super) trait LocalInferenceBackend: Send + Sync {

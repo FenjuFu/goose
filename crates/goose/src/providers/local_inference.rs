@@ -8,7 +8,6 @@ mod tool_parsing;
 use crate::config::ExtensionConfig;
 use crate::conversation::message::{Message, MessageContent};
 use crate::providers::base::{MessageStream, Provider, ProviderDef, ProviderMetadata};
-use crate::providers::utils::RequestLog;
 use anyhow::Result;
 use async_stream::try_stream;
 use async_trait::async_trait;
@@ -18,6 +17,7 @@ use goose_providers::conversation::token_usage::{ProviderUsage, Usage};
 use goose_providers::errors::ProviderError;
 use goose_providers::images::ImageFormat;
 use goose_providers::model::ModelConfig;
+use goose_providers::request_log::{start_log, LoggerHandleExt, RequestLogHandle};
 use llamacpp::{LlamaCppBackend, LLAMACPP_BACKEND_ID};
 use local_model_registry::ChatTemplate;
 use rmcp::model::Tool;
@@ -309,7 +309,7 @@ fn extract_text_content(msg: &Message) -> String {
 
 /// Build a `ProviderUsage` and write the request log entry.
 fn finalize_usage(
-    log: &mut RequestLog,
+    log: &mut Option<Box<dyn RequestLogHandle>>,
     model_name: String,
     path_label: &str,
     prompt_token_count: usize,
@@ -467,7 +467,7 @@ impl Provider for LocalInferenceProvider {
                     backend_for_load.load_model(&model_id, &resolved_for_load, &settings_for_load)
                 })
                 .await
-                .map_err(|e| ProviderError::ExecutionError(e.to_string()))??;
+                .map_err(|e| anyhow::anyhow!("failed to log: {}", e))??;
                 *model_lock = Some(loaded);
             }
         }
@@ -511,8 +511,8 @@ impl Provider for LocalInferenceProvider {
             },
         });
 
-        let mut log = RequestLog::start(&self.model_config, &log_payload)
-            .map_err(|e| ProviderError::ExecutionError(e.to_string()))?;
+        let mut log = start_log(&self.model_config, &log_payload)
+            .map_err(|e| anyhow::anyhow!("failed to log: {}", e))?;
 
         let (tx, mut rx) = tokio::sync::mpsc::channel::<
             Result<(Option<Message>, Option<ProviderUsage>), ProviderError>,

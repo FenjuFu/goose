@@ -14,7 +14,6 @@ use super::retry::ProviderRetry;
 use crate::config::declarative_providers::DeclarativeProviderConfig;
 use crate::conversation::message::Message;
 use crate::providers::base::MessageStream;
-use crate::providers::utils::RequestLog;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::future::BoxFuture;
@@ -26,6 +25,7 @@ use goose_providers::formats::openai::{
 };
 use goose_providers::images::ImageFormat;
 use goose_providers::model::ModelConfig;
+use goose_providers::request_log::{start_log, LoggerHandleExt};
 use reqwest::StatusCode;
 use rmcp::model::Tool;
 use std::collections::HashMap;
@@ -245,7 +245,8 @@ impl OpenAiProvider {
             parsed.host,
             auth,
             std::time::Duration::from_secs(timeout_secs),
-        )?;
+        )
+        .map_err(|e| anyhow::anyhow!("failed to log: {}", e))?;
 
         if !parsed.query_params.is_empty() {
             api_client = api_client.with_query(parsed.query_params);
@@ -785,7 +786,8 @@ impl Provider for OpenAiProvider {
             let mut payload = create_responses_request(model_config, system, messages, tools)?;
             payload["stream"] = serde_json::Value::Bool(self.supports_streaming);
 
-            let mut log = RequestLog::start(model_config, &payload)?;
+            let mut log = start_log(model_config, &payload)
+                .map_err(|e| anyhow::anyhow!("failed to log: {}", e))?;
 
             let response = self
                 .with_retry(|| async {
@@ -831,7 +833,8 @@ impl Provider for OpenAiProvider {
                 log.write(
                     &serde_json::to_value(&message).unwrap_or_default(),
                     Some(&usage_data),
-                )?;
+                )
+                .map_err(|e| anyhow::anyhow!("failed to log: {}", e))?;
 
                 Ok(super::base::stream_from_single_message(message, usage))
             }
@@ -846,9 +849,11 @@ impl Provider for OpenAiProvider {
                 OpenAiFormatOptions {
                     preserve_thinking_context: self.preserve_thinking_context,
                 },
-            )?;
+            )
+            .map_err(|e| anyhow::anyhow!("failed to log: {}", e))?;
             let payload = self.sanitize_request_for_compat(payload);
-            let mut log = RequestLog::start(model_config, &payload)?;
+            let mut log = start_log(model_config, &payload)
+                .map_err(|e| anyhow::anyhow!("failed to log: {}", e))?;
 
             let response = self
                 .with_retry(|| async {
@@ -880,7 +885,8 @@ impl Provider for OpenAiProvider {
                 log.write(
                     &serde_json::to_value(&message).unwrap_or_default(),
                     Some(&usage_data),
-                )?;
+                )
+                .map_err(|e| anyhow::anyhow!("failed to log: {}", e))?;
 
                 Ok(super::base::stream_from_single_message(message, usage))
             }
@@ -925,7 +931,7 @@ impl EmbeddingCapable for OpenAiProvider {
                     model: request.model.clone(),
                 };
                 let request_value = serde_json::to_value(request_clone)
-                    .map_err(|e| ProviderError::ExecutionError(e.to_string()))?;
+                    .map_err(|e| anyhow::anyhow!("failed to log: {}", e))?;
                 let embeddings_path = Self::map_base_path(
                     &self.base_path,
                     "embeddings",
@@ -951,7 +957,8 @@ impl EmbeddingCapable for OpenAiProvider {
             response
                 .payload
                 .ok_or_else(|| anyhow::anyhow!("Empty response body"))?,
-        )?;
+        )
+        .map_err(|e| anyhow::anyhow!("failed to log: {}", e))?;
 
         Ok(embedding_response
             .data

@@ -1,6 +1,5 @@
 use anyhow::Result;
 use futures::future::BoxFuture;
-use goose_providers::conversation::token_usage::ProviderUsage;
 use serde::{Deserialize, Serialize};
 
 /// Default HTTP timeout for all provider API calls.
@@ -10,7 +9,6 @@ pub const DEFAULT_PROVIDER_TIMEOUT_SECS: u64 = 600;
 
 use super::inventory::{default_inventory_identity, InventoryIdentityInput};
 use crate::config::{Config, ExtensionConfig};
-use goose_providers::conversation::message::Message;
 use goose_providers::model::ModelConfig;
 use utoipa::ToSchema;
 
@@ -187,11 +185,6 @@ pub trait ProviderDef: Send + Sync {
         let metadata = Self::metadata();
         super::inventory::default_inventory_configured(&metadata.config_keys, Config::global())
     }
-}
-
-pub fn stream_from_single_message(message: Message, usage: ProviderUsage) -> MessageStream {
-    let stream = futures::stream::once(async move { Ok((Some(message), Some(usage))) });
-    Box::pin(stream)
 }
 
 #[cfg(test)]
